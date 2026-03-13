@@ -1,10 +1,12 @@
-package mathx
+package geo
 
 import (
 	"math"
+
+	"github.com/Spencer1O1/powder_space/v2/mathx"
 )
 
-func SegmentIntersectsCircle(start, end, center Vec2, radius float64) bool {
+func SegmentIntersectsCircle(start, end, center mathx.Vec2, radius float64) bool {
 	d := end.Sub(start)
 	f := start.Sub(center)
 
@@ -29,7 +31,7 @@ func SegmentIntersectsCircle(start, end, center Vec2, radius float64) bool {
 	return (t1 >= 0 && t1 <= 1) || (t2 >= 0 && t2 <= 1)
 }
 
-func PointInCircle(point, center Vec2, radius float64) bool {
+func PointInCircle(point, center mathx.Vec2, radius float64) bool {
 	r2 := radius * radius
 	return point.Sub(center).MagSq() <= r2
 }

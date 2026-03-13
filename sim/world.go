@@ -1,8 +1,6 @@
 package sim
 
 import (
-	"math"
-
 	"github.com/Spencer1O1/powder_space/v2/mathx"
 )
 
@@ -36,54 +34,18 @@ func (w *World) SpawnParticle(pos mathx.Vec2, vel mathx.Vec2) {
 }
 
 func (w *World) Step(dt float64) {
-	const gravSoftening = 20.0
-
 	for i := range w.Particles {
 		p := &w.Particles[i]
 		if !p.Alive {
 			continue
 		}
-
 		lastPos := p.Pos
-		acc := mathx.Vec2{}
 
-		for j := range w.Bodies {
-			b := &w.Bodies[j]
+		acc := w.particleGravAcceleration(p)
+		w.integrateParticle(p, acc, dt)
 
-			delta := b.Pos.Sub(p.Pos)
-			distSq := delta.MagSq()
-
-			// softened gravity
-			denom := distSq + gravSoftening*gravSoftening
-
-			if delta.MagSq() > 1e-9 {
-				dir := delta.Norm()
-				a := w.G * b.Mass / denom
-				acc = acc.Add(dir.Mul(a))
-			}
-		}
-
-		// semi-implicit Euler
-		p.Vel = p.Vel.Add(acc.Mul(dt))
-		p.Pos = p.Pos.Add(p.Vel.Mul(dt))
-
-		// absorb after movement
-		for j := range w.Bodies {
-			b := &w.Bodies[j]
-			absorbRadius := b.Radius + p.Radius + 2
-			if mathx.PointInCircle(lastPos, b.Pos, absorbRadius) ||
-				mathx.PointInCircle(p.Pos, b.Pos, absorbRadius) ||
-				mathx.SegmentIntersectsCircle(lastPos, p.Pos, b.Pos, absorbRadius) {
-
-				lastMass := b.Mass
-				b.Mass += p.Mass
-
-				// Body scales as if it were a sphere
-				b.Radius = b.Radius * math.Cbrt(b.Mass/lastMass)
-
-				p.Alive = false
-				break
-			}
+		if w.tryAbsorbParticle(p, lastPos) {
+			continue
 		}
 	}
 
