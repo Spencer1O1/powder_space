@@ -1,6 +1,10 @@
 package sim
 
-import "github.com/Spencer1O1/powder_space/v2/mathx"
+import (
+	"math"
+
+	"github.com/Spencer1O1/powder_space/v2/mathx"
+)
 
 type World struct {
 	Particles []Particle
@@ -23,20 +27,24 @@ func NewWorld() *World {
 
 func (w *World) SpawnParticle(pos mathx.Vec2, vel mathx.Vec2) {
 	w.Particles = append(w.Particles, Particle{
-		Pos:   pos,
-		Vel:   vel,
-		Mass:  1,
-		Alive: true,
+		Radius: 1,
+		Pos:    pos,
+		Vel:    vel,
+		Mass:   10,
+		Alive:  true,
 	})
 }
 
 func (w *World) Step(dt float64) {
+	const gravSoftening = 20.0
+
 	for i := range w.Particles {
 		p := &w.Particles[i]
 		if !p.Alive {
 			continue
 		}
 
+		lastPos := p.Pos
 		acc := mathx.Vec2{}
 
 		for j := range w.Bodies {
@@ -44,13 +52,15 @@ func (w *World) Step(dt float64) {
 
 			delta := b.Pos.Sub(p.Pos)
 			distSq := delta.MagSq()
-			if distSq < 25 {
-				distSq = 25
-			}
 
-			dir := delta.Norm()
-			a := w.G * b.Mass / distSq
-			acc = acc.Add(dir.Mul(a))
+			// softened gravity
+			denom := distSq + gravSoftening*gravSoftening
+
+			if delta.MagSq() > 1e-9 {
+				dir := delta.Norm()
+				a := w.G * b.Mass / denom
+				acc = acc.Add(dir.Mul(a))
+			}
 		}
 
 		// semi-implicit Euler
@@ -60,12 +70,17 @@ func (w *World) Step(dt float64) {
 		// absorb after movement
 		for j := range w.Bodies {
 			b := &w.Bodies[j]
+			absorbRadius := b.Radius + p.Radius + 2
+			if mathx.PointInCircle(lastPos, b.Pos, absorbRadius) ||
+				mathx.PointInCircle(p.Pos, b.Pos, absorbRadius) ||
+				mathx.SegmentIntersectsCircle(lastPos, p.Pos, b.Pos, absorbRadius) {
 
-			delta := b.Pos.Sub(p.Pos)
-			dist := delta.Mag()
-
-			if dist <= b.Radius {
+				lastMass := b.Mass
 				b.Mass += p.Mass
+
+				// Body scales as if it were a sphere
+				b.Radius = b.Radius * math.Cbrt(b.Mass/lastMass)
+
 				p.Alive = false
 				break
 			}
@@ -82,4 +97,5 @@ func (w *World) compactParticles() {
 			dst = append(dst, p)
 		}
 	}
+	w.Particles = dst
 }

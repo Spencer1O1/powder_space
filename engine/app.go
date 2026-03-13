@@ -9,25 +9,38 @@ import (
 )
 
 type App struct {
-	window   *rr.Window
-	renderer *rr.Renderer
-	game     *game.Game
+	window      *rr.Window
+	renderer    *rr.Renderer
+	game        *game.Game
+	accumulator float64
 }
 
 func NewApp(window *rr.Window, renderer *rr.Renderer, game *game.Game) *App {
 	return &App{
-		window:   window,
-		renderer: renderer,
-		game:     game,
+		window:      window,
+		renderer:    renderer,
+		game:        game,
+		accumulator: 0,
 	}
 }
 
 func (a *App) Run() error {
 	for !a.window.ShouldClose() {
+		frameDt := float64(rr.GetFrameTime())
+		if frameDt > maxFrameDt {
+			frameDt = maxFrameDt
+		}
+
 		a.handleInput()
 
-		dt := rr.GetFrameTime()
-		a.game.Update(dt)
+		a.accumulator += frameDt
+
+		steps := 0
+		for a.accumulator >= fixedPhysicsDt && steps < maxPhysicsStepsPerFrame {
+			a.game.Update(fixedPhysicsDt)
+			a.accumulator -= fixedPhysicsDt
+			steps++
+		}
 
 		a.window.Begin()
 		a.window.Clear(gfxcolor.Black)
