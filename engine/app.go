@@ -5,6 +5,7 @@ import (
 	"github.com/Spencer1O1/powder_space/v2/game"
 	gfxcolor "github.com/Spencer1O1/powder_space/v2/gfx/color"
 	rr "github.com/Spencer1O1/powder_space/v2/renderer/raylib"
+	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 type App struct {
@@ -40,9 +41,13 @@ func (a *App) Run() error {
 }
 
 func (a *App) handleInput() {
-	// later: mouse tools, camera movement, hotkeys
+	if rl.IsMouseButtonDown(rl.MouseLeftButton) {
+		mouse := rl.GetMousePosition()
+		a.game.SpawnDust(float64(mouse.X), float64(mouse.Y))
+	}
 }
 
 func (a *App) render() {
 	a.renderer.DrawText(content.TitleString, 20, 20, 32, gfxcolor.White)
+	a.renderer.DrawGame(a.game)
 }

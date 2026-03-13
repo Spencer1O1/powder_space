@@ -377,8 +377,11 @@ powder-space/
 
   mathx/
     vec2.go
+    
   gfx/
-    colors.go
+    color/
+      color.go
+      palette.go
 
   game/ # Layer between UI/rendering and raw sim
     game.go
