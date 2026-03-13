@@ -1,3 +1,3 @@
 package content
 
-var TitleString = "PowderSpace | Powder Game but in SPACE"
+const TitleString = "PowderSpace | Powder Game but in SPACE"

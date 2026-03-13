@@ -1,8 +1,10 @@
 package main
 
 import (
-	"github.com/Spencer1O1/powder_space/v2/content"
-	"github.com/Spencer1O1/powder_space/v2/gfx"
+	"log"
+
+	"github.com/Spencer1O1/powder_space/v2/engine"
+	"github.com/Spencer1O1/powder_space/v2/game"
 	rr "github.com/Spencer1O1/powder_space/v2/renderer/raylib"
 )
 
@@ -11,13 +13,11 @@ func main() {
 	defer window.Close()
 
 	renderer := rr.NewRenderer()
+	g := game.NewGame()
 
-	for !window.ShouldClose() {
-		window.Begin()
-		window.Clear()
+	app := engine.NewApp(window, renderer, g)
 
-		renderer.DrawText(content.TitleString, 20, 20, 32, gfx.White)
-
-		window.End()
+	if err := app.Run(); err != nil {
+		log.Fatal(err)
 	}
 }

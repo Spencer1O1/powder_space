@@ -1,6 +1,9 @@
 package raylib
 
-import rl "github.com/gen2brain/raylib-go/raylib"
+import (
+	gfxcolor "github.com/Spencer1O1/powder_space/v2/gfx/color"
+	rl "github.com/gen2brain/raylib-go/raylib"
+)
 
 type Window struct {
 	width  int32
@@ -40,8 +43,8 @@ func (w *Window) End() {
 	rl.EndDrawing()
 }
 
-func (w *Window) Clear() {
-	rl.ClearBackground(rl.Black)
+func (w *Window) Clear(c gfxcolor.Color) {
+	rl.ClearBackground(toRLColor(c))
 }
 
 func (w *Window) Width() int32 {
