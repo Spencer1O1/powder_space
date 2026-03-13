@@ -363,20 +363,22 @@ powder-space/
       input.go
 
   sim/
-      world.go
-      particle.go
-      body.go
-      gravity.go
-      collision.go
-      accretion.go
-      integrator.go
+    world.go
+    particle.go
+    body.go
+    gravity.go
+    collision.go
+    accretion.go
+    integrator.go
 
   spatial/
-      grid.go
-      quadtree.go
+    grid.go
+    quadtree.go
 
   mathx/
-      vec2.go
+    vec2.go
+  gfx/
+    colors.go
 
   game/ # Layer between UI/rendering and raw sim
     game.go
@@ -386,8 +388,8 @@ powder-space/
     rules.go
 
   content/ # static data tables and config
-      materials.go
-      bodies.go
+    materials.go
+    bodies.go
 ```
 
 Keep dependencies flowing like:
