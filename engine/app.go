@@ -56,7 +56,7 @@ func (a *App) Run() error {
 func (a *App) handleInput() {
 	if rl.IsMouseButtonDown(rl.MouseLeftButton) {
 		mouse := rl.GetMousePosition()
-		a.game.SpawnDust(float64(mouse.X), float64(mouse.Y))
+		a.game.SpawnPowder(float64(mouse.X), float64(mouse.Y), 0, 0)
 	}
 }
 

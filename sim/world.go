@@ -1,6 +1,7 @@
 package sim
 
 import (
+	"github.com/Spencer1O1/powder_space/v2/content"
 	"github.com/Spencer1O1/powder_space/v2/mathx"
 )
 
@@ -23,13 +24,18 @@ func NewWorld() *World {
 	}
 }
 
-func (w *World) SpawnParticle(pos mathx.Vec2, vel mathx.Vec2) {
+func (w *World) SpawnParticle(pos mathx.Vec2, vel mathx.Vec2, material content.MaterialID, mass float64) {
+	mat := content.Materials[material]
+
+	radius := radiusFromMassAndDensity(mass, mat.Density)
+
 	w.Particles = append(w.Particles, Particle{
-		Radius: 1,
-		Pos:    pos,
-		Vel:    vel,
-		Mass:   10,
-		Alive:  true,
+		Material: material,
+		Mass:     mass,
+		Radius:   radius,
+		Pos:      pos,
+		Vel:      vel,
+		Alive:    true,
 	})
 }
 
@@ -60,4 +66,8 @@ func (w *World) compactParticles() {
 		}
 	}
 	w.Particles = dst
+}
+
+func (w *World) ClearParticles() {
+	w.Particles = w.Particles[:0]
 }
