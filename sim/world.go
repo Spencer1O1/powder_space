@@ -48,24 +48,28 @@ func (w *World) Step(dt float64) {
 				distSq = 25
 			}
 
-			dist := delta.Mag()
-			if dist <= b.Radius {
-				b.Mass += p.Mass
-				p.Alive = false
-				break
-			}
-
 			dir := delta.Norm()
 			a := w.G * b.Mass / distSq
 			acc = acc.Add(dir.Mul(a))
 		}
 
-		if !p.Alive {
-			continue
-		}
-
+		// semi-implicit Euler
 		p.Vel = p.Vel.Add(acc.Mul(dt))
 		p.Pos = p.Pos.Add(p.Vel.Mul(dt))
+
+		// absorb after movement
+		for j := range w.Bodies {
+			b := &w.Bodies[j]
+
+			delta := b.Pos.Sub(p.Pos)
+			dist := delta.Mag()
+
+			if dist <= b.Radius {
+				b.Mass += p.Mass
+				p.Alive = false
+				break
+			}
+		}
 	}
 
 	w.compactParticles()
