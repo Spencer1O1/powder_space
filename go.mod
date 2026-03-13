@@ -1,4 +1,4 @@
-module github.com/Spencer1O1/v2
+module github.com/Spencer1O1/powder_space/v2
 
 go 1.26.1
 
