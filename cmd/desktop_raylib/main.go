@@ -18,4 +18,4 @@ func main() {
 		rl.DrawText("PowderSpace | Powder Game but in SPACE", 20, 20, 32, rl.White)
 		rl.EndDrawing()
 	}
-}	
+}

@@ -1,0 +1,15 @@
+# binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# build outputs
+bin/
+dist/
+
+# Go workspace
+*.test
+
+# Go cache
+.cache/
