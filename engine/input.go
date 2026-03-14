@@ -3,5 +3,5 @@ package engine
 import "github.com/Spencer1O1/powder_space/v2/inputx"
 
 type InputSource interface {
-	PollMouse() inputx.MouseState
+	Poll() inputx.State
 }

@@ -45,3 +45,10 @@ func (a Vec2) Norm() Vec2 {
 		Y: a.Y / l,
 	}
 }
+
+func (a Vec2) Lerp(b Vec2, t float64) Vec2 {
+	return Vec2{
+		X: a.X + (b.X-a.X)*t,
+		Y: a.Y + (b.Y-a.Y)*t,
+	}
+}

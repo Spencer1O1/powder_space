@@ -35,7 +35,7 @@ func (r *Renderer) DrawLine(x1, y1, x2, y2 int32, c gfxcolor.Color) {
 	rl.DrawLine(x1, y1, x2, y2, toRLColor(c))
 }
 
-func (r *Renderer) DrawGame(g *game.Game, mousePos mathx.Vec2) {
+func (r *Renderer) DrawGame(g *game.Game, pointerPos mathx.Vec2) {
 	for _, body := range g.World.Bodies {
 		r.DrawCircle(
 			int32(body.Pos.X),
@@ -54,19 +54,19 @@ func (r *Renderer) DrawGame(g *game.Game, mousePos mathx.Vec2) {
 		r.DrawLine(
 			int32(g.Anchor.X),
 			int32(g.Anchor.Y),
-			int32(mousePos.X),
-			int32(mousePos.Y),
+			int32(pointerPos.X),
+			int32(pointerPos.Y),
 			gfxcolor.Gray,
 		)
 
 		// predicted velocity direction line
-		vel := g.LaunchVelocityFromPosition(mousePos)
+		vel := g.LaunchVelocityFromPosition(pointerPos)
 
-		end := mousePos.Add(vel.Mul(0.6))
+		end := pointerPos.Add(vel.Mul(0.6))
 
 		r.DrawLine(
-			int32(mousePos.X),
-			int32(mousePos.Y),
+			int32(pointerPos.X),
+			int32(pointerPos.Y),
 			int32(end.X),
 			int32(end.Y),
 			gfxcolor.White,
@@ -93,4 +93,9 @@ func (r *Renderer) DrawGame(g *game.Game, mousePos mathx.Vec2) {
 		r.DrawText(fmt.Sprintf("Body Mass: %.0f", body.Mass), 20, 85, 20, gfxcolor.Gray)
 		r.DrawText(fmt.Sprintf("Body Radius: %.1f", body.Radius), 20, 110, 20, gfxcolor.Gray)
 	}
+
+	// r.DrawText(
+	// 	fmt.Sprintf("Sim Speed: %.2fx", a.timeScale),
+	// 	20, 140, 24, gfxcolor.White,
+	// )
 }
