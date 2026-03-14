@@ -4,44 +4,50 @@ import (
 	"github.com/Spencer1O1/powder_space/v2/content"
 	"github.com/Spencer1O1/powder_space/v2/game"
 	gfxcolor "github.com/Spencer1O1/powder_space/v2/gfx/color"
-	"github.com/Spencer1O1/powder_space/v2/mathx"
+	"github.com/Spencer1O1/powder_space/v2/inputx"
 	rr "github.com/Spencer1O1/powder_space/v2/renderer/raylib"
-	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 type App struct {
 	window      *rr.Window
 	renderer    *rr.Renderer
+	input       InputSource
 	game        *game.Game
 	accumulator float64
 
-	mousePos mathx.Vec2
+	mouseState inputx.MouseState
+
+	physicsTick uint64
 }
 
-func NewApp(window *rr.Window, renderer *rr.Renderer, game *game.Game) *App {
+func NewApp(window *rr.Window, renderer *rr.Renderer, input InputSource, game *game.Game) *App {
 	return &App{
 		window:      window,
 		renderer:    renderer,
+		input:       input,
 		game:        game,
 		accumulator: 0,
+		physicsTick: 0,
 	}
 }
 
 func (a *App) Run() error {
 	for !a.window.ShouldClose() {
 		frameDt := float64(rr.GetFrameTime())
-		if frameDt > maxFrameDt {
-			frameDt = maxFrameDt
+		if frameDt > maxAccumulatedFrameDt {
+			frameDt = maxAccumulatedFrameDt
 		}
 
-		a.handleInput()
+		a.pollInput()
+
+		a.game.Update(frameDt)
 
 		a.accumulator += frameDt
 
 		steps := 0
-		for a.accumulator >= fixedPhysicsDt && steps < maxPhysicsStepsPerFrame {
-			a.game.Update(fixedPhysicsDt)
-			a.accumulator -= fixedPhysicsDt
+		for a.accumulator >= fixedDt && steps < maxFixedUpdatesPerFrame {
+			a.fixedUpdate(fixedDt)
+			a.accumulator -= fixedDt
 			steps++
 		}
 
@@ -56,25 +62,30 @@ func (a *App) Run() error {
 	return nil
 }
 
-func (a *App) handleInput() {
-	mouse := rl.GetMousePosition()
-	a.mousePos.X = float64(mouse.X)
-	a.mousePos.Y = float64(mouse.Y)
+func (a *App) fixedUpdate(dt float64) {
+	a.physicsTick++
 
-	if rl.IsMouseButtonPressed(rl.MouseButtonRight) {
-		a.game.SetAnchor(a.mousePos)
+	if a.mouseState.LeftDown {
+		if a.physicsTick%spawnFixedTickInterval == 0 {
+			a.game.SpawnPowder(a.mouseState.Position)
+		}
 	}
 
-	if rl.IsMouseButtonReleased(rl.MouseButtonRight) {
+	a.game.FixedUpdate(dt)
+}
+
+func (a *App) pollInput() {
+	a.mouseState = a.input.PollMouse()
+
+	if a.mouseState.RightPressed {
+		a.game.SetAnchor(a.mouseState.Position)
+	}
+	if a.mouseState.RightReleased {
 		a.game.ResetAnchor()
-	}
-
-	if rl.IsMouseButtonDown(rl.MouseButtonLeft) {
-		a.game.SpawnPowder(a.mousePos)
 	}
 }
 
 func (a *App) render() {
 	a.renderer.DrawText(content.TitleString, 20, 20, 32, gfxcolor.White)
-	a.renderer.DrawGame(a.game, a.mousePos)
+	a.renderer.DrawGame(a.game, a.mouseState.Position)
 }

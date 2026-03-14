@@ -31,6 +31,10 @@ func NewGame() *Game {
 }
 
 func (g *Game) Update(dt float64) {
+	// frame-based, optional for now
+}
+
+func (g *Game) FixedUpdate(dt float64) {
 	g.World.Step(dt)
 }
 

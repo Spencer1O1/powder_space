@@ -45,19 +45,7 @@ func (r *Renderer) DrawGame(g *game.Game, mousePos mathx.Vec2) {
 		)
 	}
 
-	for _, p := range g.World.Particles {
-		if !p.Alive {
-			continue
-		}
-
-		r.DrawCircle(
-			int32(p.Pos.X),
-			int32(p.Pos.Y),
-			float32(p.Radius),
-			gfxcolor.White,
-		)
-	}
-
+	// Particles get drawn above mouse control lines
 	if g.AnchorSet {
 		// anchor marker
 		r.DrawCircle(int32(g.Anchor.X), int32(g.Anchor.Y), 4, gfxcolor.Gray)
@@ -81,6 +69,19 @@ func (r *Renderer) DrawGame(g *game.Game, mousePos mathx.Vec2) {
 			int32(mousePos.Y),
 			int32(end.X),
 			int32(end.Y),
+			gfxcolor.White,
+		)
+	}
+
+	for _, p := range g.World.Particles {
+		if !p.Alive {
+			continue
+		}
+
+		r.DrawCircle(
+			int32(p.Pos.X),
+			int32(p.Pos.Y),
+			float32(p.Radius),
 			gfxcolor.White,
 		)
 	}
