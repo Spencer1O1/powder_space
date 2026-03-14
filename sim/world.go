@@ -3,12 +3,15 @@ package sim
 import (
 	"github.com/Spencer1O1/powder_space/v2/content"
 	"github.com/Spencer1O1/powder_space/v2/mathx"
+	"github.com/Spencer1O1/powder_space/v2/spatial"
 )
 
 type World struct {
 	Particles []Particle
 	Bodies    []Body
 	G         float64
+
+	ParticleGrid *spatial.UniformGrid
 }
 
 func NewWorld() *World {
@@ -32,6 +35,7 @@ func NewWorld() *World {
 				Composition: initialBodyComposition,
 			},
 		},
+		ParticleGrid: spatial.NewUniformGrid(30.0),
 	}
 }
 
@@ -67,6 +71,18 @@ func (w *World) Step(dt float64) {
 
 	w.resolveParticleInteractions(dt)
 	w.compactParticles()
+}
+
+func (w *World) rebuildParticleGrid() {
+	w.ParticleGrid.Clear()
+
+	for i := range w.Particles {
+		p := &w.Particles[i]
+		if !p.Alive {
+			continue
+		}
+		w.ParticleGrid.Insert(i, p.Pos)
+	}
 }
 
 func (w *World) compactParticles() {

@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/Spencer1O1/powder_space/v2/mathx"
+	"github.com/Spencer1O1/powder_space/v2/spatial"
 )
 
 type ParticleInteractionConfig struct {
@@ -17,7 +18,7 @@ type ParticleInteractionConfig struct {
 
 var config = ParticleInteractionConfig{
 	// Base attraction scale for nearby particles.
-	// Low values = weak or no clumping.
+	// Low values = weak or no attraction.
 	// High values = particles snap together violently.
 	BaseAttractionStrength: 10.0,
 
@@ -46,21 +47,37 @@ var config = ParticleInteractionConfig{
 // Naive O(n^2) all-pairs loop
 // Later, can be accelerated using a uniform spatial grid.
 func (w *World) resolveParticleInteractions(dt float64) {
-	n := len(w.Particles)
+	w.rebuildParticleGrid()
 
-	for i := 0; i < n; i++ {
+	for i := range w.Particles {
 		a := &w.Particles[i]
 		if !a.Alive {
 			continue
 		}
 
-		for j := i + 1; j < n; j++ {
-			b := &w.Particles[j]
-			if !b.Alive {
-				continue
-			}
+		cell := w.ParticleGrid.CellFor(a.Pos)
 
-			w.resolveParticlePair(a, b, dt)
+		for dy := -1; dy <= 1; dy++ {
+			for dx := -1; dx <= 1; dx++ {
+				neighborCell := spatial.CellCoord{
+					X: cell.X + dx,
+					Y: cell.Y + dy,
+				}
+
+				indices := w.ParticleGrid.Cells[neighborCell]
+				for _, j := range indices {
+					if j <= i {
+						continue
+					}
+
+					b := &w.Particles[j]
+					if !b.Alive {
+						continue
+					}
+
+					w.resolveParticlePair(a, b, dt)
+				}
+			}
 		}
 	}
 }
@@ -87,7 +104,7 @@ func (w *World) resolveParticlePair(a, b *Particle, dt float64) {
 		// stronger when closer to rest distance, weaker toward edge
 		t := particleClumpInfluence(dist, restDist, clumpRadius)
 
-		applyParticleAttraction(a, b, normal, dist, dt)
+		applyParticleAttraction(a, b, normal, t, dt)
 		applyParticlePairwiseDamping(a, b, t, dt)
 	}
 }
