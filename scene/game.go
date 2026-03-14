@@ -50,14 +50,8 @@ func DrawGame(r *rr.Renderer, g *game.Game, params GameViewParams) {
 	}
 
 	for _, p := range g.World.Particles {
-		if !p.Alive {
-			continue
-		}
-
-		r.DrawCircle(
-			int32(p.Pos.X),
-			int32(p.Pos.Y),
-			float32(p.Radius),
+		r.DrawParticle(
+			p.Pos, p.Radius,
 			gfxcolor.White,
 		)
 	}
