@@ -133,18 +133,10 @@ func particleRestDistance(a, b *Particle) float64 {
 	return (a.Radius + b.Radius) * (1.0 - config.OverlapRatio)
 }
 
-// particleInfluenceRadius returns how far a particle's local clumping influence extends.
-//
-// Heavier particles influence a larger neighborhood, using cube-root scaling
-// so the influence grows sublinearly with mass.
-func particleInfluenceRadius(p *Particle) float64 {
-	return config.BaseInfluenceRadius * config.RadiusInfluenceCoeff * math.Cbrt(p.Mass)
-}
-
 // particleClumpRadius returns the outer radius where two particles can still
 // weakly attract each other into a clump.
 func particleClumpRadius(a, b *Particle, restDist float64) float64 {
-	return restDist + particleInfluenceRadius(a) + particleInfluenceRadius(b)
+	return restDist + a.InfluenceRadius + b.InfluenceRadius
 }
 
 // particleClumpInfluence returns a normalized falloff factor in [0, 1]

@@ -35,17 +35,16 @@ func absorbParticleIntoBody(b *Body, p *Particle) {
 	b.Composition[p.Material] += p.Mass
 	b.Mass += p.Mass
 
-	density := weightedDensity(b.Composition)
-	b.Radius = radiusFromMassAndDensity(b.Mass, density)
+	_, radius, _, _ := getMaterialDerivedValues(b.Composition)
+	b.Radius = radius
 }
 
-func radiusFromMassAndDensity(mass float64, density float64) float64 {
-	volume := mass / density
-	r := math.Max(math.Cbrt((3*volume)/(4*math.Pi)), 0.5)
-	return r
-}
-
-func weightedDensity(composition map[content.MaterialID]float64) float64 {
+func getMaterialDerivedValues(composition map[content.MaterialID]float64) (
+	mass,
+	radius,
+	volume,
+	density float64,
+) {
 	totalMass := 0.0
 	totalVolume := 0.0
 
@@ -62,8 +61,20 @@ func weightedDensity(composition map[content.MaterialID]float64) float64 {
 	}
 
 	if totalVolume <= 0 {
-		return 1.0
+		return 0.0, 0.0, 0.0, 1.0
 	}
 
-	return totalMass / totalVolume
+	d := totalMass / totalVolume
+	r := sphericalRadiusFromVolume(totalVolume)
+
+	return totalMass, r, totalVolume, d
+}
+
+func sphericalRadiusFromVolume(v float64) float64 {
+	return math.Max(math.Cbrt((3*v)/(4*math.Pi)), 0.5)
+}
+
+func sphericalRadiusFromMassAndDensity(mass float64, density float64) float64 {
+	volume := mass / density
+	return math.Max(math.Cbrt((3*volume)/(4*math.Pi)), 0.5)
 }

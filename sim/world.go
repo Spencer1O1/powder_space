@@ -15,42 +15,25 @@ type World struct {
 }
 
 func NewWorld() *World {
-	initialBodyMass := 400000.0
-	initialBodyComposition := map[content.MaterialID]float64{
-		content.MaterialDust: initialBodyMass,
-	}
-	initialBodyRadius := radiusFromMassAndDensity(
-		initialBodyMass,
-		weightedDensity(initialBodyComposition),
-	)
-
 	return &World{
 		G: 200.0,
 		Bodies: []Body{
-			{
-				Pos:         mathx.V(960, 540),
-				Vel:         mathx.Vec2{},
-				Mass:        initialBodyMass,
-				Radius:      initialBodyRadius,
-				Composition: initialBodyComposition,
-			},
+			createBody(map[content.MaterialID]float64{
+				content.MaterialDust: 400_000.0,
+			}, mathx.V(960, 540), mathx.Vec2{}),
 		},
 		ParticleGrid: spatial.NewUniformGrid(30.0),
 	}
 }
 
 func (w *World) SpawnParticle(pos mathx.Vec2, vel mathx.Vec2, material content.MaterialID, mass float64) {
-	mat := content.Materials[material]
-	radius := radiusFromMassAndDensity(mass, mat.Density)
-
-	w.Particles = append(w.Particles, Particle{
-		Material: material,
-		Mass:     mass,
-		Radius:   radius,
-		Pos:      pos,
-		Vel:      vel,
-		Alive:    true,
-	})
+	w.Particles = append(w.Particles, createParticle(
+		material,
+		mass,
+		pos,
+		vel,
+		true,
+	))
 }
 
 func (w *World) Step(dt float64) {
