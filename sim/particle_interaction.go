@@ -56,29 +56,21 @@ func (w *World) resolveParticleInteractions(dt float64) {
 		}
 
 		cell := w.ParticleGrid.CellFor(a.Pos)
-
-		for dy := -1; dy <= 1; dy++ {
-			for dx := -1; dx <= 1; dx++ {
-				neighborCell := spatial.CellCoord{
-					X: cell.X + dx,
-					Y: cell.Y + dy,
+		w.ParticleGrid.ForEachNeighborCell(cell, func(neighbor spatial.CellCoord) {
+			indices := w.ParticleGrid.Cells[neighbor]
+			for _, j := range indices {
+				if j <= i {
+					continue
 				}
 
-				indices := w.ParticleGrid.Cells[neighborCell]
-				for _, j := range indices {
-					if j <= i {
-						continue
-					}
-
-					b := &w.Particles[j]
-					if !b.Alive {
-						continue
-					}
-
-					w.resolveParticlePair(a, b, dt)
+				b := &w.Particles[j]
+				if !b.Alive {
+					continue
 				}
+
+				w.resolveParticlePair(a, b, dt)
 			}
-		}
+		})
 	}
 }
 
@@ -86,12 +78,31 @@ func (w *World) resolveParticleInteractions(dt float64) {
 //  1. if particles overlap, resolve collision/separation and damp normal force
 //  2. otherwise, if particles are within clump range, apply attraction
 //     and pairwise relative damping so they can settle into clusters.
+//
+// Fast path: coarse reject using squared distance and squared clump radius
+// Slow path: compute sqrt / normal only if interaction is actually possible
 func (w *World) resolveParticlePair(a, b *Particle, dt float64) {
-	delta, dist := particleSeparation(a, b)
-	normal := delta.Mul(1.0 / dist)
+	delta := b.Pos.Sub(a.Pos)
+	distSq := delta.MagSq()
+
+	// tiny deterministic nudge if exactly coincident
+	if distSq < 1e-12 {
+		delta = mathx.V(1e-3, 0)
+		distSq = 1e-6
+	}
 
 	restDist := particleRestDistance(a, b)
 	clumpRadius := particleClumpRadius(a, b, restDist)
+	clumpRadiusSq := clumpRadius * clumpRadius
+
+	// coarse reject: too far apart to matter
+	if distSq >= clumpRadiusSq {
+		return
+	}
+
+	// only now pay for sqrt / normalization
+	dist := math.Sqrt(distSq)
+	normal := delta.Mul(1.0 / dist)
 
 	// 1) overlap -> collision/separation
 	if dist < restDist {
@@ -103,25 +114,9 @@ func (w *World) resolveParticlePair(a, b *Particle, dt float64) {
 	if dist < clumpRadius {
 		// stronger when closer to rest distance, weaker toward edge
 		t := particleClumpInfluence(dist, restDist, clumpRadius)
-
 		applyParticleAttraction(a, b, normal, t, dt)
 		applyParticlePairwiseDamping(a, b, t, dt)
 	}
-}
-
-// particleSeparation returns the separation vector and distance between two particles.
-//
-// A tiny deterministic nudge is used if the particles are exactly coincident
-// to avoid zero-length normal vectors and divide-by-zero problems.
-func particleSeparation(a, b *Particle) (mathx.Vec2, float64) {
-	delta := b.Pos.Sub(a.Pos)
-	distSq := delta.MagSq()
-
-	if distSq < 1e-12 {
-		delta = mathx.V(0.001, 0)
-	}
-
-	return delta, delta.Mag()
 }
 
 // particleRestDistance returns the effective "resting contact distance"
@@ -145,7 +140,11 @@ func particleClumpRadius(a, b *Particle, restDist float64) float64 {
 // 1 = strongest near rest distance
 // 0 = no effect at the edge of the clump radius
 func particleClumpInfluence(dist, restDist, clumpRadius float64) float64 {
-	t := 1.0 - (dist-restDist)/(clumpRadius-restDist)
+	denom := clumpRadius - restDist
+	if denom <= 0 {
+		return 0
+	}
+	t := 1.0 - (dist-restDist)/denom
 	if t < 0 {
 		return 0
 	}
@@ -202,8 +201,8 @@ func applyParticleAttraction(a, b *Particle, normal mathx.Vec2, influence, dt fl
 	pairStrength := config.BaseAttractionStrength * math.Sqrt(a.Mass*b.Mass)
 	forceMag := pairStrength * influence
 
-	accelA := forceMag / a.Mass
-	accelB := forceMag / b.Mass
+	accelA := forceMag * a.InvMass
+	accelB := forceMag * b.InvMass
 
 	a.Vel = a.Vel.Add(normal.Mul(accelA * dt))
 	b.Vel = b.Vel.Sub(normal.Mul(accelB * dt))
