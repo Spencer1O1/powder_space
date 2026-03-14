@@ -4,6 +4,7 @@ import (
 	"github.com/Spencer1O1/powder_space/v2/content"
 	"github.com/Spencer1O1/powder_space/v2/game"
 	gfxcolor "github.com/Spencer1O1/powder_space/v2/gfx/color"
+	"github.com/Spencer1O1/powder_space/v2/mathx"
 	rr "github.com/Spencer1O1/powder_space/v2/renderer/raylib"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -13,6 +14,8 @@ type App struct {
 	renderer    *rr.Renderer
 	game        *game.Game
 	accumulator float64
+
+	mousePos mathx.Vec2
 }
 
 func NewApp(window *rr.Window, renderer *rr.Renderer, game *game.Game) *App {
@@ -54,13 +57,24 @@ func (a *App) Run() error {
 }
 
 func (a *App) handleInput() {
-	if rl.IsMouseButtonDown(rl.MouseLeftButton) {
-		mouse := rl.GetMousePosition()
-		a.game.SpawnPowder(float64(mouse.X), float64(mouse.Y), 0, 0)
+	mouse := rl.GetMousePosition()
+	a.mousePos.X = float64(mouse.X)
+	a.mousePos.Y = float64(mouse.Y)
+
+	if rl.IsMouseButtonPressed(rl.MouseButtonRight) {
+		a.game.SetAnchor(a.mousePos)
+	}
+
+	if rl.IsMouseButtonReleased(rl.MouseButtonRight) {
+		a.game.ResetAnchor()
+	}
+
+	if rl.IsMouseButtonDown(rl.MouseButtonLeft) {
+		a.game.SpawnPowder(a.mousePos)
 	}
 }
 
 func (a *App) render() {
 	a.renderer.DrawText(content.TitleString, 20, 20, 32, gfxcolor.White)
-	a.renderer.DrawGame(a.game)
+	a.renderer.DrawGame(a.game, a.mousePos)
 }

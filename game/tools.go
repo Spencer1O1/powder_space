@@ -3,5 +3,5 @@ package game
 type Tool int
 
 const (
-	ToolDust Tool = iota
+	ToolPowder Tool = iota
 )
