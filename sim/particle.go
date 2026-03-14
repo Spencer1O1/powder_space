@@ -5,6 +5,7 @@ import (
 
 	"github.com/Spencer1O1/powder_space/v2/content"
 	"github.com/Spencer1O1/powder_space/v2/mathx"
+	"github.com/Spencer1O1/powder_space/v2/mathx/geo"
 )
 
 type Particle struct {
@@ -22,7 +23,8 @@ type Particle struct {
 
 func (p *Particle) RecomputeDerived() {
 	mat := content.Materials[p.Material]
-	p.Radius = sphericalRadiusFromMassAndDensity(p.Mass, mat.Density)
+	volume := p.Mass / mat.Density
+	p.Radius = geo.SphericalRadiusFromVolume(volume)
 
 	if p.Mass > 0 {
 		p.InvMass = 1.0 / p.Mass

@@ -6,7 +6,7 @@ import (
 )
 
 type Body struct {
-	Composition map[content.MaterialID]float64
+	Composition content.CompositionMap
 	Pos         mathx.Vec2
 	Vel         mathx.Vec2
 
@@ -16,7 +16,7 @@ type Body struct {
 }
 
 func createBody(
-	initialComposition map[content.MaterialID]float64,
+	initialComposition content.CompositionMap,
 	pos, vel mathx.Vec2,
 ) Body {
 	b := Body{
@@ -30,9 +30,7 @@ func createBody(
 }
 
 func (b *Body) RecomputeDerived() {
-	mass, radius, _, _ := getMaterialDerivedValues(
-		b.Composition,
-	)
+	mass, radius, _, _ := b.Composition.GetSphericalDerivedValues()
 
 	b.Mass = mass
 	b.Radius = radius

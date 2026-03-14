@@ -35,3 +35,7 @@ func PointInCircle(point, center mathx.Vec2, radius float64) bool {
 	r2 := radius * radius
 	return point.Sub(center).MagSq() <= r2
 }
+
+func SphericalRadiusFromVolume(v float64) float64 {
+	return math.Max(math.Cbrt((3*v)/(4*math.Pi)), 0.5)
+}
