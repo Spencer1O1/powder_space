@@ -1,8 +1,6 @@
 package sim
 
 import (
-	"math"
-
 	"github.com/Spencer1O1/powder_space/v2/mathx"
 	"github.com/Spencer1O1/powder_space/v2/spatial"
 )
@@ -33,7 +31,7 @@ var config = ParticleInteractionConfig{
 	// Allows particles to visually overlap a bit when together.
 	// Makes clumps look more compact so they do not visually shrink as much
 	// when later converted into bodies.
-	OverlapRatio: 0.6,
+	OverlapRatio: 0.7,
 
 	// Minimum particle influence radius for local clumping
 	BaseInfluenceRadius: 2.0,
@@ -101,7 +99,7 @@ func (w *World) resolveParticlePair(a, b *Particle, dt float64) {
 	}
 
 	// only now pay for sqrt / normalization
-	dist := math.Sqrt(distSq)
+	dist := mathx.Sqrt(distSq)
 	normal := delta.Mul(1.0 / dist)
 
 	// 1) overlap -> collision/separation
@@ -198,7 +196,7 @@ func resolveParticleOverlap(a, b *Particle, normal mathx.Vec2, dist, restDist fl
 //
 // In the real world space dust clumps due to static electricity, not only gravity
 func applyParticleAttraction(a, b *Particle, normal mathx.Vec2, influence, dt float64) {
-	pairStrength := config.BaseAttractionStrength * math.Sqrt(a.Mass*b.Mass)
+	pairStrength := config.BaseAttractionStrength * mathx.Sqrt(a.Mass*b.Mass)
 	forceMag := pairStrength * influence
 
 	accelA := forceMag * a.InvMass

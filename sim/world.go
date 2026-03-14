@@ -20,7 +20,10 @@ func NewWorld() *World {
 		Bodies: []Body{
 			createBody(map[content.MaterialID]float64{
 				content.MaterialDust: 400_000.0,
-			}, mathx.V(960, 540), mathx.Vec2{}),
+			}, mathx.V(800, 540), mathx.V(0, 400)),
+			createBody(map[content.MaterialID]float64{
+				content.MaterialDust: 400_000.0,
+			}, mathx.V(1120, 540), mathx.V(0, -400)),
 		},
 		ParticleGrid: spatial.NewUniformGrid(30.0),
 	}
@@ -37,6 +40,8 @@ func (w *World) SpawnParticle(pos mathx.Vec2, vel mathx.Vec2, material content.M
 }
 
 func (w *World) Step(dt float64) {
+	w.stepBodies(dt)
+
 	for i := range w.Particles {
 		p := &w.Particles[i]
 		if !p.Alive {

@@ -23,7 +23,7 @@ func SegmentIntersectsCircle(start, end, center mathx.Vec2, radius float64) bool
 		return false
 	}
 
-	discriminant = math.Sqrt(discriminant)
+	discriminant = mathx.Sqrt(discriminant)
 
 	t1 := (-b - discriminant) / (2 * a)
 	t2 := (-b + discriminant) / (2 * a)
