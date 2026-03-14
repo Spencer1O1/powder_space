@@ -1,12 +1,12 @@
 package engine
 
 import (
-	"github.com/Spencer1O1/powder_space/v2/content"
 	"github.com/Spencer1O1/powder_space/v2/game"
 	gfxcolor "github.com/Spencer1O1/powder_space/v2/gfx/color"
 	"github.com/Spencer1O1/powder_space/v2/inputx"
 	"github.com/Spencer1O1/powder_space/v2/mathx"
 	rr "github.com/Spencer1O1/powder_space/v2/renderer/raylib"
+	"github.com/Spencer1O1/powder_space/v2/scene"
 )
 
 type App struct {
@@ -115,6 +115,18 @@ func (a *App) pollInput() {
 }
 
 func (a *App) render() {
-	a.renderer.DrawText(content.TitleString, 20, 20, 32, gfxcolor.White)
-	a.renderer.DrawGame(a.game, a.inputState.Continuous.Pointer.Position)
+	scene.DrawHud(
+		a.renderer,
+		a.game,
+		scene.HudParams{
+			TimeScale: a.timeScale,
+		},
+	)
+	scene.DrawGame(
+		a.renderer,
+		a.game,
+		scene.GameViewParams{
+			PointerPos: a.inputState.Continuous.Pointer.Position,
+		},
+	)
 }
