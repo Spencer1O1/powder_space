@@ -25,7 +25,7 @@ func NewWorld() *World {
 		G: 200.0,
 		Bodies: []Body{
 			{
-				Pos:         mathx.V(640, 360),
+				Pos:         mathx.V(960, 540),
 				Vel:         mathx.Vec2{},
 				Mass:        initialBodyMass,
 				Radius:      initialBodyRadius,
@@ -57,7 +57,7 @@ func (w *World) Step(dt float64) {
 		}
 		lastPos := p.Pos
 
-		acc := w.particleGravAcceleration(p)
+		acc := w.particleBodyGravAcceleration(p)
 		w.integrateParticle(p, acc, dt)
 
 		if w.tryAbsorbParticle(p, lastPos) {
@@ -65,6 +65,7 @@ func (w *World) Step(dt float64) {
 		}
 	}
 
+	w.resolveParticleInteractions(dt)
 	w.compactParticles()
 }
 

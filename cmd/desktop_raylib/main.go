@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	window := rr.NewWindow(1280, 720, "PowderSpace")
+	window := rr.NewWindow(1920, 1080, "PowderSpace")
 	defer window.Close()
 
 	renderer := rr.NewRenderer()

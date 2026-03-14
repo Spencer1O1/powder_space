@@ -12,7 +12,7 @@ type Window struct {
 }
 
 func NewWindow(w, h int32, title string) *Window {
-	rl.InitWindow(1280, 720, "PowderSpace")
+	rl.InitWindow(w, h, title)
 
 	rl.ShowCursor()
 	rl.EnableCursor()

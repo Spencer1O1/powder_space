@@ -2,9 +2,9 @@ package sim
 
 import "github.com/Spencer1O1/powder_space/v2/mathx"
 
-const gravSoftening = 20.0
+const gravSoftening = 10.0
 
-func (w *World) particleGravAcceleration(p *Particle) mathx.Vec2 {
+func (w *World) particleBodyGravAcceleration(p *Particle) mathx.Vec2 {
 	acc := mathx.Vec2{}
 
 	for i := range w.Bodies {
