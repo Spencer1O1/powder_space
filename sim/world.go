@@ -1,6 +1,9 @@
 package sim
 
 import (
+	"runtime"
+	"sync"
+
 	"github.com/Spencer1O1/powder_space/v2/content"
 	"github.com/Spencer1O1/powder_space/v2/mathx"
 	"github.com/Spencer1O1/powder_space/v2/spatial"
@@ -76,14 +79,41 @@ func (w *World) Attract(dt float32) {
 		return
 	}
 
+	// Build tree single-threaded
 	w.Quadtree.Build(w.Particles)
 
-	for i := range w.Particles {
-		if !w.Particles[i].Alive {
-			continue
-		}
-		w.Particles[i].Acc = w.Quadtree.Acc(w.Particles[i].Pos)
+	// Parallelize
+	workers := runtime.GOMAXPROCS(0)
+	if workers > len(w.Particles) {
+		workers = len(w.Particles)
 	}
+	if workers < 1 {
+		workers = 1
+	}
+
+	n := len(w.Particles)
+	chunk := (n + workers - 1) / workers
+
+	var wg sync.WaitGroup
+	wg.Add(workers)
+
+	for worker := 0; worker < workers; worker++ {
+		start := worker * chunk
+		end := start + chunk
+		if end > n {
+			end = n
+		}
+
+		go func(start, end int) {
+			defer wg.Done()
+
+			for i := start; i < end; i++ {
+				w.Particles[i].Acc = w.Quadtree.Acc(w.Particles[i].Pos)
+			}
+		}(start, end)
+	}
+
+	wg.Wait()
 }
 
 func (w *World) compactParticles() {
