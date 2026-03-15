@@ -76,7 +76,7 @@ func (g *Game) SpawnPowder(pos mathx.Vec2) {
 	vel := g.LaunchVelocityFromPosition(pos)
 
 	g.World.SpawnParticle(
-		pos,
+		g.Anchor,
 		vel,
 		g.SelectedMaterial,
 		g.SpawnMass,

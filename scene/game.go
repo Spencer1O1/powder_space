@@ -38,14 +38,14 @@ func DrawGame(r *rr.Renderer, g *game.Game, params GameViewParams) {
 		// predicted velocity direction line
 		vel := g.LaunchVelocityFromPosition(params.PointerPos)
 
-		end := params.PointerPos.Add(vel.Mul(0.6))
+		end := g.Anchor.Add(vel.Mul(0.3))
 
 		r.DrawLine(
-			int32(params.PointerPos.X),
-			int32(params.PointerPos.Y),
+			int32(g.Anchor.X),
+			int32(g.Anchor.Y),
 			int32(end.X),
 			int32(end.Y),
-			gfxcolor.White,
+			gfxcolor.Red,
 		)
 	}
 
