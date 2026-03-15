@@ -12,14 +12,14 @@ type GameViewParams struct {
 }
 
 func DrawGame(r *rr.Renderer, g *game.Game, params GameViewParams) {
-	for _, body := range g.World.Bodies {
-		r.DrawCircle(
-			int32(body.Pos.X),
-			int32(body.Pos.Y),
-			float32(body.Radius),
-			gfxcolor.Blue,
-		)
-	}
+	// for _, body := range g.World.Bodies {
+	// 	r.DrawCircle(
+	// 		int32(body.Pos.X),
+	// 		int32(body.Pos.Y),
+	// 		float32(body.Radius),
+	// 		gfxcolor.Blue,
+	// 	)
+	// }
 
 	// Particles get drawn above mouse control lines
 	if g.AnchorSet {

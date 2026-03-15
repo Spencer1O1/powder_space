@@ -1,4 +1,4 @@
-package sim
+package old_sim
 
 import (
 	"github.com/Spencer1O1/powder_space/v2/mathx"
@@ -6,12 +6,12 @@ import (
 )
 
 type ParticleInteractionConfig struct {
-	BaseAttractionStrength float64
-	CollisionRestitution   float64
-	PairwiseDamping        float64
-	OverlapRatio           float64
-	BaseInfluenceRadius    float64
-	RadiusInfluenceCoeff   float64
+	BaseAttractionStrength float32
+	CollisionRestitution   float32
+	PairwiseDamping        float32
+	OverlapRatio           float32
+	BaseInfluenceRadius    float32
+	RadiusInfluenceCoeff   float32
 }
 
 var config = ParticleInteractionConfig{
@@ -44,7 +44,7 @@ var config = ParticleInteractionConfig{
 // handles all pairwise particle-particle interactions for the physics step
 // Naive O(n^2) all-pairs loop
 // Later, can be accelerated using a uniform spatial grid.
-func (w *World) resolveParticleInteractions(dt float64) {
+func (w *World) resolveParticleInteractions(dt float32) {
 	w.rebuildParticleGrid()
 
 	for i := range w.Particles {
@@ -79,7 +79,7 @@ func (w *World) resolveParticleInteractions(dt float64) {
 //
 // Fast path: coarse reject using squared distance and squared clump radius
 // Slow path: compute sqrt / normal only if interaction is actually possible
-func (w *World) resolveParticlePair(a, b *Particle, dt float64) {
+func (w *World) resolveParticlePair(a, b *Particle, dt float32) {
 	delta := b.Pos.Sub(a.Pos)
 	distSq := delta.MagSq()
 
@@ -122,13 +122,13 @@ func (w *World) resolveParticlePair(a, b *Particle, dt float64) {
 //
 // This is smaller than the full sum of radii so that clumps look visually
 // tighter and more compact.
-func particleRestDistance(a, b *Particle) float64 {
+func particleRestDistance(a, b *Particle) float32 {
 	return (a.Radius + b.Radius) * (1.0 - config.OverlapRatio)
 }
 
 // particleClumpRadius returns the outer radius where two particles can still
 // weakly attract each other into a clump.
-func particleClumpRadius(a, b *Particle, restDist float64) float64 {
+func particleClumpRadius(a, b *Particle, restDist float32) float32 {
 	return restDist + a.InfluenceRadius + b.InfluenceRadius
 }
 
@@ -137,7 +137,7 @@ func particleClumpRadius(a, b *Particle, restDist float64) float64 {
 //
 // 1 = strongest near rest distance
 // 0 = no effect at the edge of the clump radius
-func particleClumpInfluence(dist, restDist, clumpRadius float64) float64 {
+func particleClumpInfluence(dist, restDist, clumpRadius float32) float32 {
 	denom := clumpRadius - restDist
 	if denom <= 0 {
 		return 0
@@ -158,17 +158,17 @@ func particleClumpInfluence(dist, restDist, clumpRadius float64) float64 {
 // This acts like a sticky/inelastic collision response:
 // - particles are pushed apart so they no longer overlap
 // - bounce along the collision normal is reduced based on restitution
-func resolveParticleOverlap(a, b *Particle, normal mathx.Vec2, dist, restDist float64) {
+func resolveParticleOverlap(a, b *Particle, normal mathx.Vec2, dist, restDist float32) {
 	penetration := restDist - dist
 
-	totalMass := a.Mass + b.Mass
+	totalMass := a.M + b.M
 	if totalMass <= 0 {
 		totalMass = 1
 	}
 
 	// Lighter particles move more during position correction.
-	aMove := penetration * (b.Mass / totalMass)
-	bMove := penetration * (a.Mass / totalMass)
+	aMove := penetration * (b.M / totalMass)
+	bMove := penetration * (a.M / totalMass)
 
 	a.Pos = a.Pos.Sub(normal.Mul(aMove))
 	b.Pos = b.Pos.Add(normal.Mul(bMove))
@@ -180,8 +180,8 @@ func resolveParticleOverlap(a, b *Particle, normal mathx.Vec2, dist, restDist fl
 	if relNormalSpeed < 0 {
 		impulseMag := -(1.0 - config.CollisionRestitution) * relNormalSpeed
 
-		aImpulse := impulseMag * (b.Mass / totalMass)
-		bImpulse := impulseMag * (a.Mass / totalMass)
+		aImpulse := impulseMag * (b.M / totalMass)
+		bImpulse := impulseMag * (a.M / totalMass)
 
 		a.Vel = a.Vel.Sub(normal.Mul(aImpulse))
 		b.Vel = b.Vel.Add(normal.Mul(bImpulse))
@@ -195,12 +195,12 @@ func resolveParticleOverlap(a, b *Particle, normal mathx.Vec2, dist, restDist fl
 // particles gather into visible clusters.
 //
 // In the real world space dust clumps due to static electricity, not only gravity
-func applyParticleAttraction(a, b *Particle, normal mathx.Vec2, influence, dt float64) {
-	pairStrength := config.BaseAttractionStrength * mathx.Sqrt(a.Mass*b.Mass)
+func applyParticleAttraction(a, b *Particle, normal mathx.Vec2, influence, dt float32) {
+	pairStrength := config.BaseAttractionStrength * mathx.Sqrt(a.M*b.M)
 	forceMag := pairStrength * influence
 
-	accelA := forceMag * a.InvMass
-	accelB := forceMag * b.InvMass
+	accelA := forceMag * a.InvM
+	accelB := forceMag * b.InvM
 
 	a.Vel = a.Vel.Add(normal.Mul(accelA * dt))
 	b.Vel = b.Vel.Sub(normal.Mul(accelB * dt))
@@ -212,10 +212,10 @@ func applyParticleAttraction(a, b *Particle, normal mathx.Vec2, influence, dt fl
 // This is the key to stable clumping:
 // particles in a forming cluster stop jittering against each other, but the
 // whole clump can still orbit or drift together.
-func applyParticlePairwiseDamping(a, b *Particle, influence, dt float64) {
+func applyParticlePairwiseDamping(a, b *Particle, influence, dt float32) {
 	relVel := b.Vel.Sub(a.Vel)
 
-	totalMass := a.Mass + b.Mass
+	totalMass := a.M + b.M
 	if totalMass <= 0 {
 		totalMass = 1
 	}
@@ -227,8 +227,8 @@ func applyParticlePairwiseDamping(a, b *Particle, influence, dt float64) {
 
 	deltaVel := relVel.Mul(dampFactor)
 
-	aShare := b.Mass / totalMass
-	bShare := a.Mass / totalMass
+	aShare := b.M / totalMass
+	bShare := a.M / totalMass
 
 	a.Vel = a.Vel.Add(deltaVel.Mul(aShare))
 	b.Vel = b.Vel.Sub(deltaVel.Mul(bShare))

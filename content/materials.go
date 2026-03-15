@@ -4,7 +4,7 @@ import "github.com/Spencer1O1/powder_space/v2/mathx/geo"
 
 type MaterialID int
 type MaterialMap map[MaterialID]MaterialDef
-type CompositionMap map[MaterialID]float64
+type CompositionMap map[MaterialID]float32
 
 const (
 	MaterialDust MaterialID = iota
@@ -12,7 +12,7 @@ const (
 
 type MaterialDef struct {
 	Name    string
-	Density float64
+	Density float32
 }
 
 var Materials = MaterialMap{
@@ -26,10 +26,10 @@ func (c CompositionMap) GetSphericalDerivedValues() (
 	mass,
 	radius,
 	volume,
-	density float64,
+	density float32,
 ) {
-	totalMass := 0.0
-	totalVolume := 0.0
+	totalMass := float32(0.0)
+	totalVolume := float32(0.0)
 
 	for materialID, materialMass := range c {
 		if materialMass <= 0 {

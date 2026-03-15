@@ -8,68 +8,81 @@ import (
 
 type World struct {
 	Particles []Particle
-	Bodies    []Body
-	G         float64
+	Quadtree  spatial.Quadtree[Particle]
 
-	ParticleGrid *spatial.UniformGrid
+	// Smaller = more accurate simulation.
+	// Determines when a whole node can be treated as a combined mass.
+	Theta float32
+
+	// Larger = more softening
+	// Prevents gravity from becoming absurdly huge.
+	Epsilon float32
+
+	// Gravitational constant
+	G float32
 }
 
 func NewWorld() *World {
+	const theta = 0.7
+	const epsilon = 2.0
+	const G = 1000.0
+
+	qt := spatial.NewQuadtree[Particle](theta, epsilon, G)
+
 	return &World{
-		G: 200.0,
-		Bodies: []Body{
-			createBody(map[content.MaterialID]float64{
-				content.MaterialDust: 400_000.0,
-			}, mathx.V(800, 540), mathx.V(0, 400)),
-			createBody(map[content.MaterialID]float64{
-				content.MaterialDust: 400_000.0,
-			}, mathx.V(1120, 540), mathx.V(0, -400)),
-		},
-		ParticleGrid: spatial.NewUniformGrid(30.0),
+		Particles: make([]Particle, 0, 1024),
+		Quadtree:  *qt,
+		Theta:     theta,
+		Epsilon:   epsilon,
+		G:         G,
 	}
 }
 
-func (w *World) SpawnParticle(pos mathx.Vec2, vel mathx.Vec2, material content.MaterialID, mass float64) {
+func (w *World) SpawnParticle(pos mathx.Vec2, vel mathx.Vec2, material content.MaterialID, mass float32) {
 	w.Particles = append(w.Particles, createParticle(
 		material,
 		mass,
 		pos,
 		vel,
+		mathx.V0(),
 		true,
 	))
 }
 
-func (w *World) Step(dt float64) {
-	w.stepBodies(dt)
+func (w *World) Step(dt float32) {
+	w.Iterate(dt)
+	w.Collide(dt)
 
-	for i := range w.Particles {
-		p := &w.Particles[i]
-		if !p.Alive {
-			continue
-		}
-		lastPos := p.Pos
-
-		acc := w.particleBodyGravAcceleration(p)
-		w.integrateParticle(p, acc, dt)
-
-		if w.tryAbsorbParticle(p, lastPos) {
-			continue
-		}
-	}
-
-	w.resolveParticleInteractions(dt)
 	w.compactParticles()
+
+	w.Attract(dt)
 }
 
-func (w *World) rebuildParticleGrid() {
-	w.ParticleGrid.Clear()
-
+func (w *World) Iterate(dt float32) {
 	for i := range w.Particles {
-		p := &w.Particles[i]
-		if !p.Alive {
+		if !w.Particles[i].Alive {
 			continue
 		}
-		w.ParticleGrid.Insert(i, p.Pos)
+		w.Particles[i].Integrate(dt)
+	}
+}
+
+func (w *World) Collide(dt float32) {
+	// TODO: implement particle collision for clumping and body formation
+}
+
+func (w *World) Attract(dt float32) {
+	if len(w.Particles) == 0 {
+		return
+	}
+
+	w.Quadtree.Build(w.Particles)
+
+	for i := range w.Particles {
+		if !w.Particles[i].Alive {
+			continue
+		}
+		w.Particles[i].Acc = w.Quadtree.Acc(w.Particles[i].Pos)
 	}
 }
 

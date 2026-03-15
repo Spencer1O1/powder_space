@@ -10,14 +10,14 @@ type CellCoord struct {
 }
 
 type UniformGrid struct {
-	CellSize    float64
-	InvCellSize float64
+	CellSize    float32
+	InvCellSize float32
 
 	Cells       map[CellCoord][]int
 	ActiveCells []CellCoord
 }
 
-func NewUniformGrid(cellSize float64) *UniformGrid {
+func NewUniformGrid(cellSize float32) *UniformGrid {
 	return &UniformGrid{
 		CellSize:    cellSize,
 		InvCellSize: 1.0 / cellSize,
@@ -82,15 +82,7 @@ func (g *UniformGrid) CellFor(pos mathx.Vec2) CellCoord {
 	y := pos.Y * g.InvCellSize
 
 	return CellCoord{
-		X: fastFloorToInt(x),
-		Y: fastFloorToInt(y),
+		X: mathx.FastFloorToInt(x),
+		Y: mathx.FastFloorToInt(y),
 	}
-}
-
-func fastFloorToInt(x float64) int {
-	i := int(x)
-	if float64(i) > x {
-		return i - 1
-	}
-	return i
 }

@@ -1,4 +1,4 @@
-package sim
+package old_sim
 
 import (
 	"github.com/Spencer1O1/powder_space/v2/content"
@@ -19,11 +19,11 @@ type Body struct {
 
 	Alive bool
 	Phase BodyPhase
-	Age   float64
+	Age   float32
 
 	// Derived
-	Mass   float64
-	Radius float64
+	Mass   float32
+	Radius float32
 }
 
 func createBody(

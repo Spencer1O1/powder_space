@@ -16,7 +16,7 @@ func (i *Input) pollContinuous() inputx.ContinuousState {
 	mouse := rl.GetMousePosition()
 
 	continuousPointerState := inputx.ContinuousPointerState{
-		Position:      mathx.V(float64(mouse.X), float64(mouse.Y)),
+		Position:      mathx.V(mouse.X, mouse.Y),
 		PrimaryDown:   rl.IsMouseButtonDown(rl.MouseLeftButton),
 		SecondaryDown: rl.IsMouseButtonDown(rl.MouseRightButton),
 	}

@@ -1,6 +1,8 @@
-package sim
+package old_sim
 
 import (
+	"math"
+
 	"github.com/Spencer1O1/powder_space/v2/content"
 	"github.com/Spencer1O1/powder_space/v2/mathx"
 	"github.com/Spencer1O1/powder_space/v2/mathx/geo"
@@ -15,7 +17,9 @@ type Particle struct {
 	Alive      bool
 
 	// Derived
-	Radius float32
+	Radius          float32
+	InvM            float32
+	InfluenceRadius float32
 }
 
 func (p Particle) Position() mathx.Vec2 { return p.Pos }
@@ -30,6 +34,14 @@ func (p *Particle) RecomputeDerived() {
 	mat := content.Materials[p.MaterialId]
 	volume := p.M / mat.Density
 	p.Radius = geo.SphericalRadiusFromVolume(volume)
+
+	if p.M > 0 {
+		p.InvM = 1.0 / p.M
+	} else {
+		p.InvM = 0
+	}
+
+	p.recomputeInfluenceRadius()
 }
 
 func createParticle(
@@ -49,4 +61,13 @@ func createParticle(
 	newParticle.RecomputeDerived()
 
 	return newParticle
+}
+
+// Determines how far a particle's local clumping influence extends and caches
+// the value in the Particle struct for use by particle interactions
+//
+// Heavier particles influence a larger neighborhood, using cube-root scaling
+// so the influence grows sublinearly with mass.
+func (p *Particle) recomputeInfluenceRadius() {
+	p.InfluenceRadius = config.BaseInfluenceRadius * config.RadiusInfluenceCoeff * float32(math.Cbrt(float64(p.M)))
 }

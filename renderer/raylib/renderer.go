@@ -18,8 +18,8 @@ func NewRenderer(width, height int32) *Renderer {
 	}
 }
 
-func GetFrameTime() float64 {
-	return float64(rl.GetFrameTime())
+func GetFrameTime() float32 {
+	return rl.GetFrameTime()
 }
 
 func toRLColor(c gfxcolor.Color) rl.Color {
@@ -46,7 +46,7 @@ func (r *Renderer) DrawCircle(x, y int32, radius float32, c gfxcolor.Color) {
 	rl.DrawCircle(x, y, radius, toRLColor(c))
 }
 
-func (r *Renderer) DrawParticle(pos mathx.Vec2, radius float64, c gfxcolor.Color) {
+func (r *Renderer) DrawParticle(pos mathx.Vec2, radius float32, c gfxcolor.Color) {
 	x := int32(pos.X)
 	y := int32(pos.Y)
 
@@ -60,6 +60,6 @@ func (r *Renderer) DrawParticle(pos mathx.Vec2, radius float64, c gfxcolor.Color
 	case radius <= 1.5:
 		r.DrawRect(x-1, y-1, 2, 2, c)
 	default:
-		r.DrawCircle(x, y, float32(radius), c)
+		r.DrawCircle(x, y, radius, c)
 	}
 }

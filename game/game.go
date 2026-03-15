@@ -14,9 +14,9 @@ type Game struct {
 	Anchor    mathx.Vec2
 
 	SelectedMaterial content.MaterialID
-	SpawnMass        float64
-	LaunchStrength   float64
-	MaxLaunchSpeed   float64
+	SpawnMass        float32
+	LaunchStrength   float32
+	MaxLaunchSpeed   float32
 }
 
 func NewGame() *Game {
@@ -30,11 +30,11 @@ func NewGame() *Game {
 	}
 }
 
-func (g *Game) Update(dt float64) {
+func (g *Game) Update(dt float32) {
 	// frame-based, optional for now
 }
 
-func (g *Game) FixedUpdate(dt float64) {
+func (g *Game) FixedUpdate(dt float32) {
 	g.World.Step(dt)
 }
 

@@ -15,9 +15,9 @@ type App struct {
 	input    InputSource
 	game     *game.Game
 
-	timeScale        float64
-	fixedAccumulator float64
-	fixedTick        uint64
+	timeScale        float32
+	fixedAccumulator float32
+	fixedTick        uint32
 
 	inputState inputx.State
 
@@ -39,7 +39,7 @@ func NewApp(window *rr.Window, renderer *rr.Renderer, input InputSource, game *g
 
 func (a *App) Run() error {
 	for !a.window.ShouldClose() {
-		frameDt := float64(rr.GetFrameTime())
+		frameDt := rr.GetFrameTime()
 		if frameDt > maxAccumulatedFrameDt {
 			frameDt = maxAccumulatedFrameDt
 		}
@@ -57,9 +57,9 @@ func (a *App) Run() error {
 		}
 
 		for step := 0; step < stepsToRun; step++ {
-			alpha := 1.0
+			alpha := float32(1.0)
 			if stepsToRun > 0 {
-				alpha = float64(step+1) / float64(stepsToRun)
+				alpha = float32(step+1) / float32(stepsToRun)
 			}
 
 			a.fixedUpdate(fixedDt, alpha)
@@ -77,7 +77,7 @@ func (a *App) Run() error {
 	return nil
 }
 
-func (a *App) fixedUpdate(dt, alpha float64) {
+func (a *App) fixedUpdate(dt, alpha float32) {
 	if a.inputState.Continuous.Pointer.PrimaryDown {
 		if a.fixedTick%spawnFixedTickInterval == 0 {
 			pos := a.prevPointerPos.Lerp(a.currPointerPos, alpha)
