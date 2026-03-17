@@ -107,10 +107,11 @@ func (n Node) IsEmpty() bool  { return n.Mass == 0 }
 // ---------------------------------------------------------
 
 type Quadtree[T MassPoint] struct {
-	TSq   float32
-	ESq   float32
-	G     float32
-	Nodes []Node
+	TSq          float32
+	ESq          float32
+	G            float32
+	Nodes        []Node
+	MaxNodesUsed int
 }
 
 const Root = 0
@@ -118,9 +119,24 @@ const Root = 0
 // epsilon: softening. prevents gravity from becoming absurdly huge. Larger = more softening
 func NewQuadtree[T MassPoint](theta, epsilon, G float32) *Quadtree[T] {
 	return &Quadtree[T]{
-		TSq: theta * theta,
-		ESq: epsilon * epsilon,
-		G:   G,
+		TSq:   theta * theta,
+		ESq:   epsilon * epsilon,
+		G:     G,
+		Nodes: make([]Node, 0, 1024),
+	}
+}
+
+// Helper to optimize allocations
+func (qt *Quadtree[T]) ReserveForPoints(n int) {
+	// Root + expected branch/child nodes.
+	// Start with a heuristic, not worst-case.
+	want := 1 + int(3.5*float32(n))
+	if qt.MaxNodesUsed > want {
+		want = qt.MaxNodesUsed
+	}
+
+	if cap(qt.Nodes) < want {
+		qt.Nodes = make([]Node, 0, want)
 	}
 }
 
@@ -130,9 +146,13 @@ func (qt *Quadtree[T]) Clear(quad Quad) {
 }
 
 func (qt *Quadtree[T]) Build(pts []T) {
+	qt.ReserveForPoints(len(pts))
 	qt.Clear(NewQuadContaining(pts))
 	for _, p := range pts {
 		qt.Insert(p.Position(), p.Mass()) // Insert maintains COM incrementally
+	}
+	if len(qt.Nodes) > qt.MaxNodesUsed {
+		qt.MaxNodesUsed = len(qt.Nodes)
 	}
 }
 

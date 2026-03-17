@@ -26,7 +26,7 @@ type World struct {
 }
 
 func NewWorld() *World {
-	const theta = 0.7
+	const theta = 1
 	const epsilon = 2.0
 	const G = 1000.0
 
@@ -83,6 +83,7 @@ func (w *World) Attract(dt float32) {
 	w.Quadtree.Build(w.Particles)
 
 	// Parallelize
+	// TODO: optimize by reusing goroutine workers instead of creating them each frame.
 	workers := runtime.GOMAXPROCS(0)
 	if workers > len(w.Particles) {
 		workers = len(w.Particles)

@@ -7,11 +7,13 @@ import (
 )
 
 type Particle struct {
+	// "HOT" values (used by barnes-hut)
+	M   float32
+	Pos mathx.Vec2
+	Vel mathx.Vec2
+	Acc mathx.Vec2
+
 	MaterialId content.MaterialID
-	M          float32
-	Pos        mathx.Vec2
-	Vel        mathx.Vec2
-	Acc        mathx.Vec2
 	Alive      bool
 
 	// Derived
