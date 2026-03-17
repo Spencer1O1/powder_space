@@ -12,18 +12,18 @@ type MassPoint interface {
 }
 
 // ---------------------------------------------------------
-// Quad
+// Bounds
 // ---------------------------------------------------------
 
-type Quad struct {
+type Bounds struct {
 	Center mathx.Vec2
 	Size   float32
 }
 
-func NewQuadContaining[T MassPoint](pts []T) Quad {
+func NewBoundsContaining[T MassPoint](pts []T) Bounds {
 	// Handle empty input defensively
 	if len(pts) == 0 {
-		return Quad{Center: mathx.V0(), Size: 1}
+		return Bounds{Center: mathx.V0(), Size: 1}
 	}
 
 	minX, minY := float32(math.MaxFloat32), float32(math.MaxFloat32)
@@ -44,36 +44,7 @@ func NewQuadContaining[T MassPoint](pts []T) Quad {
 	size := mathx.Max(maxX-minX, maxY-minY)
 
 	// (Optional) if size == 0, keep it 0; duplicate points will just sum mass at a leaf.
-	return Quad{Center: center, Size: size}
-}
-
-// rust ((pos.y > center.y) as usize) << 1 | (pos.x > center.x) as usize
-func (q Quad) FindQuadrant(pos mathx.Vec2) int {
-	ybit := 0
-	if pos.Y > q.Center.Y {
-		ybit = 1
-	}
-	xbit := 0
-	if pos.X > q.Center.X {
-		xbit = 1
-	}
-	return (ybit << 1) | xbit
-}
-
-func (q Quad) IntoQuadrant(quadrant int) Quad {
-	q.Size *= 0.5
-	q.Center.X += (float32(quadrant&1) - 0.5) * q.Size
-	q.Center.Y += (float32(quadrant>>1) - 0.5) * q.Size
-	return q
-}
-
-func (q Quad) Subdivide() [4]Quad {
-	return [4]Quad{
-		q.IntoQuadrant(0),
-		q.IntoQuadrant(1),
-		q.IntoQuadrant(2),
-		q.IntoQuadrant(3),
-	}
+	return Bounds{Center: center, Size: size}
 }
 
 // ---------------------------------------------------------
@@ -83,24 +54,41 @@ func (q Quad) Subdivide() [4]Quad {
 type Node struct {
 	Children int // 0 => leaf; otherwise index of first child
 	Next     int
-	Pos      mathx.Vec2
-	Mass     float32
-	Quad     Quad
+
+	Pos  mathx.Vec2
+	Mass float32
+
+	// Quad     Quad
+	Center mathx.Vec2
+	Size   float32
+	SizeSq float32
 }
 
-func NewNode(next int, quad Quad) Node {
+func NewNode(next int, bounds Bounds) Node {
 	return Node{
 		Children: 0,
 		Next:     next,
 		Pos:      mathx.V0(),
 		Mass:     0,
-		Quad:     quad,
+		Center:   bounds.Center,
+		Size:     bounds.Size,
+		SizeSq:   bounds.Size * bounds.Size,
+		// Quad:     quad,
 	}
 }
 
-func (n Node) IsLeaf() bool   { return n.Children == 0 }
-func (n Node) IsBranch() bool { return n.Children != 0 }
-func (n Node) IsEmpty() bool  { return n.Mass == 0 }
+// rust ((pos.y > center.y) as usize) << 1 | (pos.x > center.x) as usize
+func (n Node) FindQuadrant(pos mathx.Vec2) int {
+	ybit := 0
+	if pos.Y > n.Center.Y {
+		ybit = 1
+	}
+	xbit := 0
+	if pos.X > n.Center.X {
+		xbit = 1
+	}
+	return (ybit << 1) | xbit
+}
 
 // ---------------------------------------------------------
 // Quadtree (Barnes-Hut style) — optimized build (no Propagate)
@@ -130,7 +118,7 @@ func NewQuadtree[T MassPoint](theta, epsilon, G float32) *Quadtree[T] {
 func (qt *Quadtree[T]) ReserveForPoints(n int) {
 	// Root + expected branch/child nodes.
 	// Start with a heuristic, not worst-case.
-	want := 1 + int(3.5*float32(n))
+	want := 1 + (7*n)/2
 	if qt.MaxNodesUsed > want {
 		want = qt.MaxNodesUsed
 	}
@@ -140,14 +128,14 @@ func (qt *Quadtree[T]) ReserveForPoints(n int) {
 	}
 }
 
-func (qt *Quadtree[T]) Clear(quad Quad) {
+func (qt *Quadtree[T]) Clear(bounds Bounds) {
 	qt.Nodes = qt.Nodes[:0]
-	qt.Nodes = append(qt.Nodes, NewNode(0, quad))
+	qt.Nodes = append(qt.Nodes, NewNode(0, bounds))
 }
 
 func (qt *Quadtree[T]) Build(pts []T) {
 	qt.ReserveForPoints(len(pts))
-	qt.Clear(NewQuadContaining(pts))
+	qt.Clear(NewBoundsContaining(pts))
 	for _, p := range pts {
 		qt.Insert(p.Position(), p.Mass()) // Insert maintains COM incrementally
 	}
@@ -167,10 +155,29 @@ func (qt *Quadtree[T]) subdivide(node int) int {
 		children + 3,
 		qt.Nodes[node].Next,
 	}
-	quads := qt.Nodes[node].Quad.Subdivide()
+
+	parentCenter := qt.Nodes[node].Center
+	childSize := qt.Nodes[node].Size * 0.5
+	childSizeSq := childSize * childSize
+
+	// quads := qt.Nodes[node].Quad.Subdivide()
 
 	for i := 0; i < 4; i++ {
-		qt.Nodes = append(qt.Nodes, NewNode(nexts[i], quads[i]))
+		center := parentCenter
+		center.X += (float32(i&1) - 0.5) * childSize
+		center.Y += (float32(i>>1) - 0.5) * childSize
+
+		qt.Nodes = append(qt.Nodes, Node{
+			Children: 0,
+			Next:     nexts[i],
+			Pos:      mathx.V0(),
+			Mass:     0,
+			Center:   center,
+			Size:     childSize,
+			SizeSq:   childSizeSq,
+		})
+
+		// qt.Nodes = append(qt.Nodes, NewNode(nexts[i], quads[i]))
 	}
 	return children
 }
@@ -190,28 +197,31 @@ func accumulate(n *Node, pos mathx.Vec2, m float32) {
 
 // Insert stores points in leaves; branches store COM. No second pass needed.
 func (qt *Quadtree[T]) Insert(pos mathx.Vec2, mass float32) {
-	node := Root
+	qt.insertAt(Root, pos, mass)
+}
 
+// insertAt inserts a point mass starting at the given node,
+// updating COM/mass along the traversed subtree.
+func (qt *Quadtree[T]) insertAt(node int, pos mathx.Vec2, mass float32) {
 	for {
 		n := &qt.Nodes[node]
 
-		// Branch: accumulate and descend
-		if n.IsBranch() {
+		// if is Branch: accumulate and descend
+		if n.Children != 0 {
 			accumulate(n, pos, mass)
-			q := n.Quad.FindQuadrant(pos)
-			node = n.Children + q
+			node = n.Children + n.FindQuadrant(pos)
 			continue
 		}
 
-		// Leaf cases
-		if n.IsEmpty() {
+		// if is Leaf
+		if n.Mass == 0 {
 			// empty leaf: store point
 			n.Pos = pos
 			n.Mass = mass
 			return
 		}
 
-		// occupied leaf: same position => just add mass
+		// occupied leaf: same position => merge mass
 		if pos.Equal(n.Pos) {
 			n.Mass += mass
 			return
@@ -219,62 +229,31 @@ func (qt *Quadtree[T]) Insert(pos mathx.Vec2, mass float32) {
 
 		// occupied leaf with different position => split
 		oldPos, oldMass := n.Pos, n.Mass
-
 		children := qt.subdivide(node)
+		n = &qt.Nodes[node] // reacquire after possible slice reallocation
 
-		// This node becomes a branch representing {old, new}
+		// current node becomes branch aggregate
 		n.Pos = mathx.V0()
 		n.Mass = 0
 		accumulate(n, oldPos, oldMass)
 		accumulate(n, pos, mass)
 
-		// Reinsert the old point into children (without touching ancestors above this node)
-		qt.insertFrom(children+n.Quad.FindQuadrant(oldPos), oldPos, oldMass)
-		qt.insertFrom(children+n.Quad.FindQuadrant(pos), pos, mass)
-		return
-	}
-}
+		// place old point recursively
+		qt.insertAt(children+n.FindQuadrant(oldPos), oldPos, oldMass)
 
-// insertFrom inserts into subtree rooted at `node`, updating COM/mass along that subtree only.
-func (qt *Quadtree[T]) insertFrom(node int, pos mathx.Vec2, mass float32) {
-	for {
-		n := &qt.Nodes[node]
-
-		if n.IsBranch() {
-			accumulate(n, pos, mass)
-			q := n.Quad.FindQuadrant(pos)
-			node = n.Children + q
-			continue
-		}
-
-		if n.IsEmpty() {
-			n.Pos = pos
-			n.Mass = mass
-			return
-		}
-
-		if pos.Equal(n.Pos) {
-			n.Mass += mass
-			return
-		}
-
-		// split leaf
-		oldPos, oldMass := n.Pos, n.Mass
-		children := qt.subdivide(node)
-
-		n.Pos = mathx.V0()
-		n.Mass = 0
-		accumulate(n, oldPos, oldMass)
-		accumulate(n, pos, mass)
-
-		qt.insertFrom(children+n.Quad.FindQuadrant(oldPos), oldPos, oldMass)
-		qt.insertFrom(children+n.Quad.FindQuadrant(pos), pos, mass)
-		return
+		// continue loop with new point
+		node = children + n.FindQuadrant(pos)
+		continue
 	}
 }
 
 func (qt *Quadtree[T]) Acc(pos mathx.Vec2) mathx.Vec2 {
 	acc := mathx.V0()
+
+	// Cache locally
+	tSq := qt.TSq
+	eSq := qt.ESq
+	g := qt.G
 
 	node := Root
 	for {
@@ -283,10 +262,11 @@ func (qt *Quadtree[T]) Acc(pos mathx.Vec2) mathx.Vec2 {
 		d := n.Pos.Sub(pos)
 		dSq := d.MagSq()
 
-		if n.IsLeaf() || (n.Quad.Size*n.Quad.Size) < (dSq*qt.TSq) {
-			denom := (dSq + qt.ESq) * mathx.Sqrt(dSq)
+		// Is leaf or sizeSq < dSq*tSq
+		if n.Children == 0 || n.SizeSq < dSq*tSq {
+			denom := (dSq + eSq) * mathx.Sqrt(dSq)
 			if denom != 0 {
-				acc = acc.Add(d.Mul(qt.G * n.Mass / denom))
+				acc = acc.Add(d.Mul(g * n.Mass / denom))
 			}
 			if n.Next == 0 {
 				break
